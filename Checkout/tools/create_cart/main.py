@@ -239,32 +239,61 @@ class CreateCart(Tool):
                 "has_weni_token": bool(auth_token),
             }
 
-        try:
-            response = requests.post(
-                "https://flows.weni.ai/api/v2/contacts.json",
-                headers={
-                    "Authorization": f"Token {auth_token}",
-                    "Content-Type": "application/json",
-                },
-                params={"urn": contact_urn},
-                json={"fields": fields},
-                timeout=15,
-            )
-            response.raise_for_status()
-            return {"saved": True, "status_code": response.status_code}
-        except requests.exceptions.RequestException as error:
-            response_body = None
-            status_code = None
-            if hasattr(error, "response") and error.response is not None:
-                status_code = error.response.status_code
-                response_body = self.safe_text(error.response)
-            return {
-                "saved": False,
-                "reason": "request_failed",
-                "details": str(error),
-                "status_code": status_code,
-                "response_body": response_body,
-            }
+        # Tenta múltiplos esquemas de autorização caso o token esteja correto mas o esquema esperado seja diferente.
+        def mask(t: str) -> str:
+            if not t:
+                return ""
+            t = str(t)
+            if len(t) <= 8:
+                return "*" * len(t)
+            return t[:4] + "..." + t[-4:]
+
+        url = "https://flows.weni.ai/api/v2/contacts.json"
+        attempts = []
+
+        auth_schemes = [
+            ("Token", f"Token {auth_token}"),
+            ("Bearer", f"Bearer {auth_token}"),
+            ("Raw", auth_token),
+        ]
+
+        for label, auth_header in auth_schemes:
+            headers = {"Content-Type": "application/json", "Authorization": auth_header}
+            try:
+                resp = requests.post(
+                    url,
+                    headers=headers,
+                    params={"urn": contact_urn},
+                    json={"fields": fields},
+                    timeout=15,
+                )
+                status = resp.status_code
+                body = self.safe_text(resp)
+                attempts.append({"scheme": label, "status_code": status, "response_body": body})
+                if 200 <= status < 300:
+                    return {"saved": True, "status_code": status, "attempts": attempts}
+                # if 4xx/5xx continue to next scheme
+            except requests.exceptions.RequestException as error:
+                status_code = None
+                response_body = None
+                if hasattr(error, "response") and error.response is not None:
+                    status_code = error.response.status_code
+                    response_body = self.safe_text(error.response)
+                attempts.append({
+                    "scheme": label,
+                    "error": str(error),
+                    "status_code": status_code,
+                    "response_body": response_body,
+                })
+
+        # Se chegou aqui, todas as tentativas falharam
+        return {
+            "saved": False,
+            "reason": "request_failed",
+            "has_contact_urn": bool(contact_urn),
+            "token_summary": mask(auth_token),
+            "attempts": attempts,
+        }
 
     def parse_items(self, raw_items):
         if isinstance(raw_items, str):
