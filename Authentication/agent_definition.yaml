@@ -1,0 +1,64 @@
+agents:
+    authentication_agent:
+        credentials:
+            WENI_TOKEN:
+                label: "Weni Token"
+                placeholder: "Token para atualizar contact fields no Weni Flows"
+                is_confidential: true
+        name: "Authentication Agent"
+        description: "Handles Brastemp customer authentication with e-mail access code. Use when the customer needs to authenticate before checking order information or accessing protected account actions."
+        instructions:
+            - "Você é o agente de autenticação da Brastemp e deve conduzir o login por código enviado por e-mail."
+            - "Sempre solicite o e-mail do usuário antes de chamar a ferramenta start_authentication para iniciar o login."
+            - "Quando o usuário informar o e-mail, chame start_authentication com o parâmetro email_user exatamente como informado."
+            - "Após a ferramenta informar que o código foi enviado, peça ao usuário o código recebido no e-mail cadastrado."
+            - "Quando o usuário informar o código, chame validate_access_key com o parâmetro acesskey exatamente como informado e inclua email_user e vss_cookie retornados pela start_authentication."
+            - "Não invente mensagens de autenticação, cookies, tokens, e-mails ou status. Use apenas o retorno das ferramentas."
+            - "Se a autenticação falhar, informe que o código pode estar inválido ou expirado e ofereça enviar um novo código."
+            - "Se o usuário informar um e-mail inválido, solicite um e-mail válido antes de iniciar a autenticação."
+            - "Depois da validação com sucesso, informe ao manager que o usuário foi autenticado e pode seguir para a consulta do pedido."
+            - "Não solicite senha, dados de cartão, CPF completo ou outros dados sensíveis durante a autenticação por e-mail."
+        guardrails:
+            - "Não discuta política, religião ou outros tópicos sensíveis. Redirecione a conversa para a autenticação do cliente."
+            - "Não compartilhe cookies, tokens ou valores técnicos retornados pelas ferramentas com o usuário final."
+            - "Não solicite senha, dados de cartão, documentos completos ou outros dados sensíveis além do e-mail e código."
+            - "Não confirme a autenticação se a ferramenta validate_access_key não retornar status authenticated com sucesso."
+        tools:
+            - start_authentication:
+                name: "Start Authentication"
+                source:
+                    path: "tools/start_authentication"
+                    entrypoint: "main.StartAuthentication"
+                    path_test: "test_definition.yaml"
+                description: "Starts VTEX login, saves _vss cookie, and sends the e-mail access code"
+                parameters:
+                    - email_user:
+                        description: "Customer e-mail used to receive the authentication access code"
+                        type: "string"
+                        required: true
+                        contact_field: true
+                    - vss_cookie:
+                        description: "VTEX authentication session cookie saved by the authentication tool"
+                        type: "string"
+                        required: false
+                        contact_field: true
+            - validate_access_key:
+                name: "Validate Access Key"
+                source:
+                    path: "tools/validate_access_key"
+                    entrypoint: "main.ValidateAccessKey"
+                    path_test: "test_definition.yaml"
+                description: "Validates the access code sent by e-mail using the saved _vss cookie"
+                parameters:
+                    - acesskey:
+                        description: "Access code sent to the customer e-mail during authentication"
+                        type: "string"
+                        required: true
+                    - email_user:
+                        description: "Customer e-mail used in the previous authentication step, if available"
+                        type: "string"
+                        required: false
+                    - vss_cookie:
+                        description: "VTEX _vss cookie returned by start_authentication"
+                        type: "string"
+                        required: true

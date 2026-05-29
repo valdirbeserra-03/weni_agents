@@ -1,0 +1,43 @@
+name: Create Cart
+description: A tool to create and manage a VTEX shopping cart.
+inputs:
+  - name: action
+    description: "The action to perform: 'simulate', 'add_item', 'update_items', 'remove_all'."
+    type: string
+    required: true
+  - name: product_items
+    description: "Array of SKU IDs or product details for cart operations. Can be a list of strings or a JSON string."
+    type: string
+    required: false
+  - name: postal_code
+    description: "Postal code for cart simulation or shipping calculation."
+    type: string
+    required: false
+  - name: order_form_id
+    description: "VTEX orderFormId to manage an existing cart."
+    type: string
+    required: false
+  - name: sku_id
+    description: "SKU ID to add to the cart."
+    type: string
+    required: false
+  - name: quantity
+    description: "Quantity of the SKU to add or update."
+    type: integer
+    required: false
+  - name: order_items
+    description: "List of items to update in the cart. Each item should be a dictionary with 'index' and 'quantity'."
+    type: string
+    required: false
+  - name: CheckoutOrderFormOwnership
+    description: "VTEX CheckoutOrderFormOwnership cookie."
+    type: string
+    required: false
+  - name: checkout_vtex_cookie
+    description: "VTEX checkout.vtex.com cookie."
+    type: string
+    required: false
+  - name: cookie
+    description: "Raw Cookie header for requests, used as a fallback."
+    type: string
+    required: false

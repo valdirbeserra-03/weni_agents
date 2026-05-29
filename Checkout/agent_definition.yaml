@@ -1,0 +1,114 @@
+agents:
+    checkout_agent:
+        credentials:
+            token_weni:
+                label: "Weni Token"
+                placeholder: "Weni Token"
+                is_confidential: true
+        name: "Checkout Agent"
+        description: "This agent is responsible for generating a checkout cart for the user according to the products that were requested."
+        instructions:
+            - "You are an expert in processing payment information for customer orders"
+            - "The user will send cart information and you must provide payment details and options for their order"
+            - "Help users complete their payment process efficiently and securely"
+            - "This tool MUST be invoked only after the Product Concierge agent has returned the user's selected SKUs (handoff). Create Cart is responsible for creating and managing the VTEX checkout (simulation, add, update, remove)."
+            - "The OrderFormId is automatically extracted from the cart simulation response. Never ask the user for OrderFormId; use the one returned by the simulation."
+            - "If the create_cart tool returns checkout_link, use that exact URL to open the cart. Do not construct or modify the URL manually."
+            - "The product_items parameter is a string containing an array of products in the format '[236]'"
+            - "If you have already generated another cart previously, you must use the OrderFormID to add more items to the same cart."
+            - "Mandatory and non-negotiable rule: under no circumstances invent, create or suggest any payment method."
+            - "IF you don't have the postal code, you MUST ask for it to the user."
+            - "WHEN you receive 'catálogo enviado com sucesso', you can pass to the manager 'Catálogo foi criado com sucesso, verifique a mensagem anterior para finalizar seu carrinho.'"
+        guardrails:
+            - "Don't talk about politics, religion or any other sensitive topic. Keep it neutral."
+        tools:
+            - create_cart:
+                name: "Create Cart"
+                source:
+                    path: "tools/create_cart"
+                    entrypoint: "main.CreateCart"
+                    path_test: "test_definition.yaml"
+                description: "Simulates cart and manages VTEX orderForm (add/update/remove items). Triggered by Product Concierge after product selection to create/manage the checkout."
+                parameters:
+                    - action:
+                        description: "Action to perform: simulate, add_item, update_items, remove_all"
+                        type: "string"
+                        required: true
+                    - product_items:
+                        description: "Array of SKU IDs to simulate in the cart"
+                        type: "array"
+                        required: false
+                    - postal_code:
+                        description: "CEP for cart simulation"
+                        type: "string"
+                        required: false
+                    - order_form_id:
+                        description: "VTEX orderFormId used to add, update or remove cart items"
+                        type: "string"
+                        required: false
+                        contact_field: true
+                    - sku_id:
+                        description: "SKU ID to add to the cart"
+                        type: "string"
+                        required: false
+                    - quantity:
+                        description: "Quantity to add or update for the SKU"
+                        type: "integer"
+                        required: false
+                    - order_items:
+                        description: "List of order item objects for update, each with quantity and index"
+                        type: "array"
+                        required: false
+                    - CheckoutOrderFormOwnership:
+                        description: "VTEX CheckoutOrderFormOwnership cookie value"
+                        type: "string"
+                        required: false
+                    - checkout_vtex_cookie:
+                        description: "VTEX checkout.vtex.com cookie value"
+                        type: "string"
+                        required: false
+                    - cookie:
+                        description: "Raw Cookie header for simulation requests"
+                        type: "string"
+                        required: false
+            - manage_customer_data:
+                name: "Manage Customer Data"
+                source:
+                    path: "tools/manage_customer_data"
+                    entrypoint: "main.ManageCustomerData"
+                    path_test: "test_definition.yaml"
+                description: "Manages customer data in VTEX, allowing to get, create, or update customer information associated with an orderForm."
+                parameters:
+                    - action:
+                        description: "Action to perform: get_customer, create_customer, update_customer"
+                        type: "string"
+                        required: true
+                    - email:
+                        description: "Customer's email address"
+                        type: "string"
+                        required: true
+                    - order_form_id:
+                        description: "VTEX orderFormId to associate the customer with"
+                        type: "string"
+                        required: true
+                        contact_field: true
+                    - first_name:
+                        description: "Customer's first name"
+                        type: "string"
+                        required: false
+                    - last_name:
+                        description: "Customer's last name"
+                        type: "string"
+                        required: false
+                    - document:
+                        description: "Customer's document number (CPF)"
+                        type: "string"
+                        required: false
+                    - document_type:
+                        description: "Type of document, e.g., 'cpf'"
+                        type: "string"
+                        required: false
+                    - phone:
+                        description: "Customer's phone number"
+                        type: "string"
+                        required: false

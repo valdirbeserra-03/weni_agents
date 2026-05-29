@@ -1,0 +1,4 @@
+tests:
+    test_1:
+        parameters:
+            email_user: "larissa.carnicel@vtex.com"
